@@ -5,9 +5,10 @@ const { User } = require("../database/models")
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const VerifyToken = require('../auth/auth')
+const VerifyToken = require('../auth/auth');
+const TeacherType = require("./TeacherType");
 
-const mutation = new GraphQLObjectType({
+const Mutation = new GraphQLObjectType({
 	name: 'Mutation',
 	fields: {
 		registerUser: {
@@ -25,7 +26,6 @@ const mutation = new GraphQLObjectType({
 						extensions: { code: 'REJECTED!!!', },
 					  }); 
 				};
-
 				return await User.create({ name, email, password });
 			},
 		},
@@ -49,23 +49,24 @@ const mutation = new GraphQLObjectType({
 				}); 
 			},
 		},
-		authTest: {
-			type: UserType,
+		registerTeacher: {
+			type: TeacherType,
 			args: {
 				email: { type: new GraphQLNonNull(GraphQLString) },
 			},
 			async resolve(parent, args, ctx) {
-					const { email } = args;
-					const user = await User.findOne({ where: { email } });
-					if(await VerifyToken(ctx.token)){
-						return user
-					};
-					return new GraphQLError('Token verification failed', {
-						extensions: { code: 'REJECTED!!!', }
-					});
+				const { email } = args;
+				const user = await User.findOne({ where: { email } });
+
+				if(await VerifyToken(ctx.token)){
+					return user
+				};
+				return new GraphQLError('Token verification failed', {
+					extensions: { code: 'REJECTED!!!', }
+				});
 			},
 		}
 	}
 });
 
-module.exports = mutation
+module.exports = Mutation
