@@ -1,7 +1,7 @@
 const { GraphQLObjectType, GraphQLString, GraphQLNonNull, GraphQLError } = require("graphql");
 const LoginResponse = require("./ResponseType");
 const UserType = require("./UserType");
-const { User } = require("../database/models")
+const { User, Teacher } = require("../database/models")
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -49,20 +49,27 @@ const Mutation = new GraphQLObjectType({
 				}); 
 			},
 		},
-		registerTeacher: {
+		registerNewTeacher: {
 			type: TeacherType,
 			args: {
-				email: { type: new GraphQLNonNull(GraphQLString) },
+				firstName: { type: new GraphQLNonNull(GraphQLString) },
+				lastName: { type: new GraphQLNonNull(GraphQLString) }
 			},
 			async resolve(parent, args, ctx) {
-				const { email } = args;
-				const user = await User.findOne({ where: { email } });
-
-				if(await VerifyToken(ctx.token)){
-					return user
+				const { firstName, lastName } = args;
+				console.log(ctx.token)
+				const user = await VerifyToken(ctx.token);
+				
+				if(user){
+					const { id } = await jwt.verify(ctx.token, 'AWOGUS');
+					const newTeacher = await Teacher.create({ userId: id, firstName: firstName, lastName: lastName })
+					
+					return { User: {...user.toJSON()}, firstName: newTeacher.firstName, lastName: newTeacher.lastName}
 				};
+
 				return new GraphQLError('Token verification failed', {
 					extensions: { code: 'REJECTED!!!', }
+					
 				});
 			},
 		}

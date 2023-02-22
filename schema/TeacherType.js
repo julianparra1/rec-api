@@ -10,7 +10,7 @@ const TeacherType = new GraphQLObjectType({
 				type: UserType,
 				//resolve: (parent, args, ctx) => (parent.name)
 			},
-			firstName: {
+			firstName: { 
 				description: "User Email",
 				type: GraphQLString,
 			},

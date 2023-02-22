@@ -6,7 +6,7 @@ module.exports = {
     await queryInterface.bulkInsert('Users', [{
         name: 'admin',
         email: 'admin@admin.com',
-        password: '$2a$10$beQAS4ltZ4gs/KfKmGzFA.FMFqtRdLDuJaQJQf/G9M4NxBcKVBfXm',
+        password: '$2a$10$txQPE6QkHxIXWJ4yTOS4hO1OiFnuYyZrf/eEEEDnWD/6Jeqr6jjGu',
         createdAt: new Date(),
         updatedAt: new Date()
       }], {});
