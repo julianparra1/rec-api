@@ -11,16 +11,19 @@ module.exports = {
       },
       maestroId: {
         type: Sequelize.INTEGER,
+        allowNull: false,
         references: {
           model: 'Teachers',
           key: 'id'
         },
       },
       name: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        allowNull: false,
       },
       semestre: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
+        allowNull: false,
       },
       createdAt: {
         allowNull: false,

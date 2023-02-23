@@ -26,7 +26,8 @@ module.exports = {
       },
       firstParcial: {
         type: Sequelize.INTEGER,
-        allowNull: false
+        defaultValue: 0,
+        allowNull: true
       },
       secondParcial: {
         type: Sequelize.INTEGER,

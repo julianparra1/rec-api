@@ -1,12 +1,16 @@
-const { GraphQLObjectType, GraphQLString, GraphQLNonNull, GraphQLError } = require("graphql");
+const { GraphQLObjectType, GraphQLString, GraphQLNonNull, GraphQLError, GraphQLInt } = require("graphql");
 const LoginResponse = require("./ResponseType");
-const UserType = require("./UserType");
-const { User, Teacher } = require("../database/models")
+const { User, Teacher, Student, Subject, Grade } = require("../database/models")
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const VerifyToken = require('../auth/auth');
+
+const UserType = require("./UserType");
 const TeacherType = require("./TeacherType");
+const StudentType = require("./StudentType");
+const GradeType = require("./GradeType");
+const SubjectType = require("./SubjectType");
 
 const Mutation = new GraphQLObjectType({
 	name: 'Mutation',
@@ -57,13 +61,10 @@ const Mutation = new GraphQLObjectType({
 			},
 			async resolve(parent, args, ctx) {
 				const { firstName, lastName } = args;
-				console.log(ctx.token)
 				const user = await VerifyToken(ctx.token);
 				
 				if(user){
-					const { id } = await jwt.verify(ctx.token, 'AWOGUS');
-					const newTeacher = await Teacher.create({ userId: id, firstName: firstName, lastName: lastName })
-					
+					const newTeacher = await Teacher.create({ userId: user.id, firstName, lastName })
 					return { User: {...user.toJSON()}, firstName: newTeacher.firstName, lastName: newTeacher.lastName}
 				};
 
@@ -72,7 +73,100 @@ const Mutation = new GraphQLObjectType({
 					
 				});
 			},
-		}
+		},
+		registerStudent: {
+			type: StudentType,
+			args: {
+				firstName: { type: new GraphQLNonNull(GraphQLString) },
+				lastName: { type: new GraphQLNonNull(GraphQLString) },
+				curp: { type: new GraphQLNonNull(GraphQLString) },
+			},
+			async resolve (parent, args, ctx) {
+				const { firstName, lastName, curp } = args;
+				const curpExists = await Student.findOne({ where: { curp } });
+
+				if (curpExists) {
+					return new GraphQLError('CURP Already exists!', {
+						extensions: { code: 'REJECTED!!!', },
+					  }); 
+				};
+
+				return await Student.create({ firstName, lastName, curp });
+			},
+		},
+		subscribeToSubject: {
+			type: SubjectType,
+			args: {
+				name: { type: new GraphQLNonNull(GraphQLString) },
+				semestre: { type: new GraphQLNonNull(GraphQLInt) },
+			},
+			async resolve (parent, args, ctx) {
+				const { name, semestre } = args;
+
+				const user = await VerifyToken(ctx.token);
+				if(!user){
+					return new GraphQLError('Token verification failed', {
+						extensions: { code: 'REJECTED!!!', },
+					}); 
+				}
+
+				const teacher = await Teacher.findByPk(user.id)
+				if (!teacher) {
+					return new GraphQLError('No teacher for this user!', {
+						extensions: { code: 'REJECTED!!!', },
+					}); 
+				};
+					
+				const newSubject = await Subject.create({ maestroId: user.id, name: name, semestre: semestre })
+				return { Maestro: {...teacher.toJSON()}, Name: newSubject.name, Semestre: newSubject.semestre}
+
+			},
+		},
+		gradeStudent: {
+			type: GradeType,
+			args: {
+				curp: { type: new GraphQLNonNull(GraphQLString) },
+				subjectId: { type: new GraphQLNonNull(GraphQLInt) },
+				semestre: { type: new GraphQLNonNull(GraphQLInt) },
+				firstParcial: { type: GraphQLInt },
+				secondParcial: { type: GraphQLInt },
+				thirdParcial: { type: GraphQLInt },
+			},
+			async resolve (parent, args, ctx) {
+				const { curp, subjectId ,semestre, firstParcial, secondParcial, thirdParcial} = args;
+				
+				const user = await VerifyToken(ctx.token);
+				if(!user){
+					return new GraphQLError('Token verification failed', {
+						extensions: { code: 'REJECTED!!!', },
+					}); 
+				}
+
+				const teacher = await Teacher.findByPk(user.id)
+				if (!teacher) {
+					return new GraphQLError('No teacher for this user!', {
+						extensions: { code: 'REJECTED!!!', },
+					}); 
+				};
+
+				const student = await Student.findOne({ where: { curp } });
+				if(!student){
+					return new GraphQLError('Student does not exist!', {
+						extensions: { code: 'REJECTED!!!', },
+					}); 
+				}
+				
+				const subject = await Student.findOne({ where: { id: subjectId } });
+				if(!subject){
+					return new GraphQLError('Subject does not exist!', {
+						extensions: { code: 'REJECTED!!!', },
+					}); 
+				}
+
+				const newGrade = await Grade.create({ studentId: student.id, materiaId: subjectId, semestre: semestre, firstParcial, secondParcial, thirdParcial})
+				return { Student: {...student.toJSON()}, Materia: {...subject.toJSON()}, Semestre: newGrade.semestre, firstParcial, secondParcial, thirdParcial}
+			},
+		},
 	}
 });
 
